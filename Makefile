@@ -1,5 +1,5 @@
 CPP=g++
-CPPFLAGS=-Wall -std=c++17
+CPPFLAGS=-Wall -std=c++17 -g
 
 all : NeuralNet.o
 

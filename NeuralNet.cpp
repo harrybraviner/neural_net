@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstring>
+#include <stdexcept>
 #include "math.h"
 
 #include "NeuralNet.hpp"
@@ -43,7 +44,10 @@ double* NeuralNet::feedForward(double *input) {
     double *matrix = transferMatrices[0];
     
     // i indexes the layer we are feeding forward *from*
+    // FIXME - you haven't updated rows and cols here!
     for (int i=0; i<(totalNumberOfLayers-1); i++) {
+        rows = numberOfNodesInAllLayers[i+1];
+        cols = numberOfNodesInAllLayers[i];
         for(int j=0; j<rows; j++) {
             nextActivations[j] = 0.0;
             for(int k=0; k<cols; k++) {
@@ -77,4 +81,19 @@ double* NeuralNet::feedForward(double *input) {
     }
 
     return output;
+}
+
+void NeuralNet::setMatrix(int layer, double *matrix) {
+    if (layer < 0 || layer >= totalNumberOfLayers) {
+        throw std::domain_error("Invalid layer index.");
+    }
+
+    double *matrix_to_change = transferMatrices[layer];
+    int rows = numberOfNodesInAllLayers[layer+1];
+    int cols = numberOfNodesInAllLayers[layer];
+    for (int i=0; i<rows; i++) {
+        for (int j=0; j<cols; j++) {
+            matrix_to_change[i*cols + j] = matrix[i*cols + j];
+        }
+    }
 }
