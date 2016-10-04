@@ -22,7 +22,8 @@ NeuralNet::NeuralNet(int numberOfHiddenLayers, int numberOfInputs, int numberOfO
     // Assign memory for the matrices, setting to zero
     this->transferMatrices = new double*[(numberOfHiddenLayers+1)]();
     for (int i=0; i<(this->totalNumberOfLayers-1); i++){
-        this->transferMatrices[i] = new double[numberOfNodesInAllLayers[i]*numberOfNodesInAllLayers[i+1]]();
+        // Note: the +1 is due to the bias term
+        this->transferMatrices[i] = new double[(numberOfNodesInAllLayers[i]+1)*numberOfNodesInAllLayers[i+1]]();
     }
 
 
@@ -38,7 +39,7 @@ double NeuralNet::transferFunction(double x) {
 double* NeuralNet::feedForward(double *input) {
     // Efficient feed-forward method - avoid repeated memory assignments
     int rows = numberOfNodesInAllLayers[1];
-    int cols = numberOfNodesInAllLayers[0];
+    int cols = numberOfNodesInAllLayers[0] + 1;
     double *prevActivations = input;
     double *nextActivations = feedForwardScratch1;
     double *matrix = transferMatrices[0];
@@ -47,11 +48,11 @@ double* NeuralNet::feedForward(double *input) {
     // FIXME - you haven't updated rows and cols here!
     for (int i=0; i<(totalNumberOfLayers-1); i++) {
         rows = numberOfNodesInAllLayers[i+1];
-        cols = numberOfNodesInAllLayers[i];
+        cols = numberOfNodesInAllLayers[i] + 1;
         for(int j=0; j<rows; j++) {
-            nextActivations[j] = 0.0;
-            for(int k=0; k<cols; k++) {
-                nextActivations[j] += matrix[j*cols + k]*prevActivations[k];
+            nextActivations[j] = matrix[j*cols + 0];    // Bias vector
+            for(int k=1; k<cols; k++) {
+                nextActivations[j] += matrix[j*cols + k]*prevActivations[k-1];
             }
             nextActivations[j] = transferFunction(nextActivations[j]);
         }
@@ -90,7 +91,7 @@ void NeuralNet::setMatrix(int layer, double *matrix) {
 
     double *matrix_to_change = transferMatrices[layer];
     int rows = numberOfNodesInAllLayers[layer+1];
-    int cols = numberOfNodesInAllLayers[layer];
+    int cols = numberOfNodesInAllLayers[layer] + 1;
     for (int i=0; i<rows; i++) {
         for (int j=0; j<cols; j++) {
             matrix_to_change[i*cols + j] = matrix[i*cols + j];
