@@ -4,9 +4,10 @@
 class NeuralNet {
     public:
         NeuralNet(int numberOfHiddenLayers, int numberOfInputs, int numberOfOutputs, int numberOfNodesInHiddenLayers[]);
-        double* feedForward(double *input);
+        double* feedForward(const double *const input);
         void setMatrix(int layer, double *matrix);
         ~NeuralNet();   // FIXME - write this, free all memory
+        double** getDerivatives(const double *const input, const double *const target_y);
     private:
         int numberOfInputs;
         int numberOfOutputs;
@@ -15,9 +16,6 @@ class NeuralNet {
         double **transferMatrices;
         double transferFunction(double x);
         double transferFunctionDeriv(double x);
-
-        double *feedForwardScratch1;    // Memory to use to hold acitviations
-        double *feedForwardScratch2;    // during feed-forward
 
         void _feedForward();    // Internal call to push input forward through all layers of memory
         void _backPropogate();  // Internal call to push the error terms back
