@@ -30,57 +30,85 @@ NeuralNet::NeuralNet(int numberOfHiddenLayers, int numberOfInputs, int numberOfO
 
     this->feedForwardScratch1 = new double[maxNumberOfNodesInAnyLayer];
     this->feedForwardScratch2 = new double[maxNumberOfNodesInAnyLayer];
+
+    this->L = numberOfHiddenLayers+1;
+    this->a = new double*[L+1];
+    this->z = new double*[L];
+    this->delta = new double*[L];
+    this->delta_w = new double*[L];
+    this->y = new double[numberOfOutputs];
+
+    a[0] = new double[numberOfNodesInAllLayers[0]];
+    for (int i=0; i<(this->L); i++){
+        a[i+1] = new double[numberOfNodesInAllLayers[i+1]];
+        z[i] = new double[numberOfNodesInAllLayers[i+1]];
+        delta[i] = new double[numberOfNodesInAllLayers[i+1]];
+        delta_w[i] = new double[numberOfNodesInAllLayers[i+1]*(numberOfNodesInAllLayers[i]+1)];
+    }
 }
 
 double NeuralNet::transferFunction(double x) {
     return (1.0/(1.0 + exp(-x)));
 }
 
-double* NeuralNet::feedForward(double *input) {
-    // Efficient feed-forward method - avoid repeated memory assignments
-    int rows = numberOfNodesInAllLayers[1];
-    int cols = numberOfNodesInAllLayers[0] + 1;
-    double *prevActivations = input;
-    double *nextActivations = feedForwardScratch1;
-    double *matrix = transferMatrices[0];
-    
-    // i indexes the layer we are feeding forward *from*
-    // FIXME - you haven't updated rows and cols here!
-    for (int i=0; i<(totalNumberOfLayers-1); i++) {
-        rows = numberOfNodesInAllLayers[i+1];
-        cols = numberOfNodesInAllLayers[i] + 1;
-        for(int j=0; j<rows; j++) {
-            nextActivations[j] = matrix[j*cols + 0];    // Bias vector
-            for(int k=1; k<cols; k++) {
-                nextActivations[j] += matrix[j*cols + k]*prevActivations[k-1];
-            }
-            nextActivations[j] = transferFunction(nextActivations[j]);
-        }
+double NeuralNet::transferFunctionDeriv(double x) {
+    // Avoid a layer of indirection
+    double t = 1.0/(1.0 + exp(-x));
+    return t*(1.0 - t);
+}
 
-        // Note: yes, this results in pointers to non-existent matrices at the end,
-        //       but we'll never try and access them.
-        // Now swap the pointers to the next and prev layers
-        if (i%2 == 0) {
-            prevActivations = feedForwardScratch1;
-            nextActivations = feedForwardScratch2;
-        } else {
-            prevActivations = feedForwardScratch2;
-            nextActivations = feedForwardScratch1;
+void NeuralNet::_feedForward() {
+    for (int i=0; i<L; i++) {
+        double *matrix = transferMatrices[i];
+        int cols = numberOfNodesInAllLayers[i] + 1;
+        int rows = numberOfNodesInAllLayers[i+1];
+        for (int j=0; j<rows; j++) {
+            z[i][j] = 0.0;
+            z[i][j] += matrix[j*cols + 0];   // Bias term
+            for (int k=1; k<cols; k++) {
+                z[i][j] += matrix[j*cols + k]*a[i][k-1];
+            }
+
+            a[i+1][j] = transferFunction(z[i][j]);
         }
-        matrix = transferMatrices[i+1];
     }
+}
+
+void NeuralNet::_backPropogate() {
+    for (int i=0; i<numberOfOutputs; i++) {
+        delta[L-1][i] = (a[L][i] - y[i]) * transferFunction(z[L-1][i]);
+    }
+    for (int l=L-2; l>=0; l--) {
+        double *matrix = transferMatrices[l+1];
+        int cols = numberOfNodesInAllLayers[l+1] + 1;
+        int rows = numberOfNodesInAllLayers[l+2];
+        for (int i=1; i<cols; i++) {
+            delta[l][i] = 0.0;
+            for (int j=0; j<rows; j++) {
+                delta[l][i] += matrix[j*cols + i]*delta[l+1][j];
+            }
+            delta[l][i] *= transferFunctionDeriv(z[l][i]);
+        }
+    }
+
+    for (int l=0; l<L; l++) {
+        int cols = numberOfNodesInAllLayers[l] + 1;
+        int rows = numberOfNodesInAllLayers[l+1];
+        for (int i=0; i<rows; i++) {
+            for (int j=1; j<cols; j++) {
+                delta_w[l][i*cols + j] = delta[l][i]*a[l][j];
+            }
+            delta_w[l][i*cols + 0] = delta[l][i];
+        }
+    }
+}
+
+double* NeuralNet::feedForward(double *input) {
+    std::memcpy(a[0], input, sizeof(double)*numberOfInputs);
+    _feedForward();
 
     double *output = new double[numberOfOutputs];
-    double *outputToCopy;
-    if (totalNumberOfLayers%2 == 0) {
-        outputToCopy = feedForwardScratch1;
-    } else {
-        outputToCopy = feedForwardScratch2;
-    }
-    for(int i=0; i<numberOfOutputs; i++){
-        std::memcpy(output, outputToCopy, sizeof(double)*numberOfOutputs);
-    }
-
+    std::memcpy(output, a[L], sizeof(double)*numberOfOutputs);
     return output;
 }
 
