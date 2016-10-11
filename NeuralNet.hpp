@@ -4,10 +4,16 @@
 class NeuralNet {
     public:
         NeuralNet(int numberOfHiddenLayers, int numberOfInputs, int numberOfOutputs, int numberOfNodesInHiddenLayers[]);
+
+        void randomiseMatrices();
+
         double* feedForward(const double *const input);
         void setMatrix(int layer, double *matrix);
+        double *getMatrix(int layer);
         ~NeuralNet();   // FIXME - write this, free all memory
         double** getDerivatives(const double *const input, const double *const target_y);
+        void learnStep(const double learningRate, double *const input, double *const target_y);
+        void learnBatch(const double learningRate, const int numberOfTrainingCases, double **const input, double **const target_y);
     private:
         int numberOfInputs;
         int numberOfOutputs;

@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cstring>
 #include <stdexcept>
+#include <random>
 #include "math.h"
 
 #include "NeuralNet.hpp"
@@ -59,6 +60,22 @@ NeuralNet::~NeuralNet() {
     delete[] delta;
     delete[] delta_w;
     delete[] y;
+}
+
+void NeuralNet::randomiseMatrices() {
+    std::uniform_real_distribution<double> unif(-0.5, 0.5);
+    std::default_random_engine re;
+
+    for (int l=0; l<L; l++) {
+        int cols = numberOfNodesInAllLayers[l] + 1;
+        int rows = numberOfNodesInAllLayers[l+1];
+        double *matrix = transferMatrices[l];
+        for (int i=0; i<rows; i++) {
+            for (int j=0; j<cols; j++) {
+                matrix[i*cols + j] = unif(re);
+            }
+        }
+    }
 }
 
 double NeuralNet::transferFunction(double x) {
@@ -154,6 +171,107 @@ void NeuralNet::setMatrix(int layer, double *matrix) {
     for (int i=0; i<rows; i++) {
         for (int j=0; j<cols; j++) {
             matrix_to_change[i*cols + j] = matrix[i*cols + j];
+        }
+    }
+}
+
+double *NeuralNet::getMatrix(int layer) {
+    if (layer < 0 || layer >= totalNumberOfLayers) {
+        throw std::domain_error("Invalid layer index.");
+    }
+
+    int rows = numberOfNodesInAllLayers[layer+1];
+    int cols = numberOfNodesInAllLayers[layer] + 1;
+    double *matrix_to_return = new double[rows*cols];
+    std::memcpy(matrix_to_return, transferMatrices[layer], sizeof(double)*rows*cols);
+
+    return matrix_to_return;
+    
+}
+
+void NeuralNet::learnStep(const double learningRate, double* const input, double *const target_y) {
+    // Note: note calling getDerivatives because I don't want to allocate delta_w of memory
+    std::memcpy(a[0], input, sizeof(double)*numberOfInputs);
+    std::memcpy(y, target_y, sizeof(double)*numberOfOutputs);
+    _feedForward();
+    _backPropogate();
+    
+    // delta_w is now set to the correct derivatives
+    for (int l=0; l<L; l++) {
+        int cols = numberOfNodesInAllLayers[l] + 1;
+        int rows = numberOfNodesInAllLayers[l+1];
+        double *matrix = transferMatrices[l];
+        double *dw = delta_w[l];
+        for (int i=0; i<rows; i++) {
+            for (int j=0; j<cols; j++) {
+                matrix[i*cols + j] -= learningRate * dw[i*cols + j];
+            }
+        }
+    }
+}
+
+void NeuralNet::learnBatch(const double learningRate, const int numberOfTrainingCases, double** const input, double** const target_y) {
+
+    double **acc_delta_w = new double*[L];
+    for (int l=0; l<L; l++) {
+        int rows = numberOfNodesInAllLayers[l+1];
+        int cols = numberOfNodesInAllLayers[l] + 1;
+        acc_delta_w[l] = new double[rows*cols]();
+    }
+    double acc_C = 0.0; // For comuting the mean squared error
+
+    for(int t=0; t<numberOfTrainingCases; t++) {
+        std::memcpy(a[0], input[t], sizeof(double)*numberOfInputs);
+        std::memcpy(y, target_y[t], sizeof(double)*numberOfOutputs);
+        _feedForward();
+        for (int i=0; i<numberOfOutputs; i++) {
+            acc_C += 0.5*(a[L][i] - target_y[t][i])*(a[L][i] - target_y[t][i]);
+        }
+
+        _backPropogate();
+        for (int l=0; l<L; l++) {
+            int rows = numberOfNodesInAllLayers[l+1];
+            int cols = numberOfNodesInAllLayers[l] + 1;
+            double *dw = delta_w[l];
+            for (int i=0; i<rows; i++) {
+                for (int j=0; j<cols; j++) {
+                    acc_delta_w[l][i*cols + j] += dw[i*cols + j];
+                }
+            }
+        }
+
+    }
+
+    acc_C /= numberOfTrainingCases;
+
+    // Compute the magnitude of the vector
+    // Normalise by the number of training cases (otherwise smaller batches will learn faster per example! - FIXME - is this actually true anymore?
+    double acc_mag_delta_w = 0.0;
+    for (int l=0; l<L; l++) {
+        int rows = numberOfNodesInAllLayers[l+1];
+        int cols = numberOfNodesInAllLayers[l] + 1;
+        for (int i=0; i<rows; i++) {
+            for (int j=0; j<cols; j++) {
+                acc_delta_w[l][i*cols + j] /= numberOfTrainingCases;
+                //matrix[i*cols + j] -= learningRate * acc_delta_w[l][i*cols + j];
+                acc_mag_delta_w += acc_delta_w[l][i*cols + j]*acc_delta_w[l][i*cols + j];
+            }
+        }
+    }
+
+    acc_mag_delta_w = sqrt(acc_mag_delta_w);
+    double stepSize = learningRate * acc_C / acc_mag_delta_w;
+    stepSize = stepSize < 1e3 ? stepSize : 1e3;
+
+    // Actually take the step
+    for (int l=0; l<L; l++) {
+        int rows = numberOfNodesInAllLayers[l+1];
+        int cols = numberOfNodesInAllLayers[l] + 1;
+        double *matrix = transferMatrices[l];
+        for (int i=0; i<rows; i++) {
+            for (int j=0; j<cols; j++) {
+                matrix[i*cols + j] -= stepSize * acc_delta_w[l][i*cols + j];
+            }
         }
     }
 }
