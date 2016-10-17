@@ -20,8 +20,10 @@ class NeuralNet {
         int totalNumberOfLayers;    // Includes input and output
         int *numberOfNodesInAllLayers;   // Includes input and output
         double **transferMatrices;
-        double transferFunction(double x);
-        double transferFunctionDeriv(double x);
+        double logisticFunction(double x);
+        double logisticFunctionDeriv(double x);
+
+        void softmaxLayer(int N, double *const z, double* y);
 
         void _feedForward();    // Internal call to push input forward through all layers of memory
         void _backPropogate();  // Internal call to push the error terms back

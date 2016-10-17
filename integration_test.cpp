@@ -250,49 +250,16 @@ int main() {
 
     get_error_rate_on_range_of_images(0, 1000, nn);
 
-    double learningRate = 1.0;
-    train_batch_on_range_of_images(1001, 2000, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-    train_batch_on_range_of_images(2001, 3000, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-    train_batch_on_range_of_images(3001, 4000, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-    train_batch_on_range_of_images(4001, 5000, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-    train_batch_on_range_of_images(5001, 6000, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-    train_batch_on_range_of_images(6001, 7000, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-    train_batch_on_range_of_images(7001, 8000, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-    train_batch_on_range_of_images(8001, 9000, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-    train_batch_on_range_of_images(9001, 10000, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
+    double learningRate = 0.01;
+    for (int i=0; i<10; i++) {
+        for (int k=0; k<10; k++) {
+            for (int j=0; j<10; j++) {
+                train_batch_on_range_of_images(1001 + k*1000 + 100*j, 1100 + k*1000 + 100*j, learningRate, nn);
+            }
+            get_error_rate_on_range_of_images(0, 1000, nn);
+        }
+    }
 
-    learningRate = 1.0;
-    train_batch_on_range_of_images(1001, 10999, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-
-    learningRate = 1.0;
-    train_batch_on_range_of_images(1001, 10999, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-
-    learningRate = 1.0;
-    train_batch_on_range_of_images(1001, 10999, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-    train_batch_on_range_of_images(1001, 10999, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-    train_batch_on_range_of_images(1001, 10999, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-    train_batch_on_range_of_images(1001, 10999, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-    train_batch_on_range_of_images(1001, 10999, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-    train_batch_on_range_of_images(1001, 10999, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
-    train_batch_on_range_of_images(1001, 10999, learningRate, nn);
-    get_error_rate_on_range_of_images(0, 1000, nn);
 
 
     return 0;
